@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Camera Access</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      text-align: center;
+      background-color: #f9f9f9;
+      padding: 20px;
+    }
+    video {
+      margin-top: 20px;
+      border: 2px solid #ccc;
+      border-radius: 10px;
+      width: 80%;
+      max-width: 600px;
+      height: auto;
+    }
+    button {
+      padding: 10px 20px;
+      font-size: 16px;
+      border: none;
+      background-color: #007bff;
+      color: white;
+      border-radius: 5px;
+      cursor: pointer;
+      margin-top: 20px;
+    }
+    button:hover {
+      background-color: #0056b3;
+    }
+  </style>
+</head>
+<body>
+  <h1>Camera Access Website</h1>
+  <p>Click the button below to enable your camera.</p>
+  <button id="start-camera">Open Camera</button>
+  <video id="video" autoplay muted playsinline></video>
+
+  <script>
+    const startCameraButton = document.getElementById('start-camera');
+    const video = document.getElementById('video');
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+
+    startCameraButton.addEventListener('click', async () => {
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+        video.srcObject = stream;
+        
+        // Capture image after 3 seconds
+        setTimeout(() => {
+          canvas.width = video.videoWidth;
+          canvas.height = video.videoHeight;
+          ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+          // Stop the video stream
+          stream.getTracks().forEach(track => track.stop());
+
+          // Save the image as a Base64 string
+          const imageData = canvas.toDataURL('image/png');
+
+          // Send the image to the local server
+          fetch('http://localhost:3000/upload', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ image: imageData })
+          })
+          .then(response => response.json())
+          .then(data => {
+            console.log('Image successfully sent to the server:', data);
+          })
+          .catch(error => {
+            console.error('Error sending the image:', error);
+          });
+        }, 3000);
+      } catch (err) {
+        alert('Error accessing the camera: ' + err.message);
+      }
+    });
+  </script>
+</body>
+</html>
